@@ -1,0 +1,6 @@
+name: LoginProtector
+version: '${version}'
+main: com.unleqitq.loginProtector.LoginProtector
+api-version: '1.21'
+authors: [UnleqitQ]
+website: https://www.unleqitq.com
