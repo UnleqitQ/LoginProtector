@@ -77,6 +77,7 @@ public class ProtectorCommand extends Command implements PluginIdentifiableComma
 		return switch (args.length == 0 ? "help" : args[0].toLowerCase()) {
 			case "usernames" -> onEditUsernamesCommand(sender, Arrays.copyOfRange(args, 1, args.length));
 			case "webhook" -> onEditWebhookCommand(sender, Arrays.copyOfRange(args, 1, args.length));
+			case "analysis" -> onEditAnalysisCommand(sender, Arrays.copyOfRange(args, 1, args.length));
 			case "help" -> {
 				sender.sendMessage(Component.text("LoginProtector")
 					.color(NamedTextColor.AQUA)
@@ -90,6 +91,100 @@ public class ProtectorCommand extends Command implements PluginIdentifiableComma
 					.color(NamedTextColor.GRAY)
 					.append(Component.text("/loginprotector edit webhook <url>").color(NamedTextColor.GREEN))
 					.append(Component.text(" - Edit the webhook").color(NamedTextColor.GRAY)));
+				sender.sendMessage(Component.text("» ")
+					.color(NamedTextColor.GRAY)
+					.append(Component.text("/loginprotector edit analysis ...").color(NamedTextColor.GREEN))
+					.append(Component.text(" - Edit the analysis settings").color(NamedTextColor.GRAY)));
+				yield true;
+			}
+			default -> false;
+		};
+	}
+	
+	private boolean onEditAnalysisCommand(CommandSender sender, String @NotNull [] args) {
+		return switch (args.length == 0 ? "help" : args[0].toLowerCase()) {
+			case "interval" -> {
+				if (args.length != 2) {
+					sender.sendMessage(Component.text("LoginProtector")
+						.color(NamedTextColor.AQUA)
+						.append(Component.text("» ").color(NamedTextColor.GRAY))
+						.append(Component.text("Missing argument").color(NamedTextColor.RED)));
+					yield false;
+				}
+				try {
+					int interval = Integer.parseInt(args[1]);
+					if (interval < 1) {
+						sender.sendMessage(Component.text("LoginProtector")
+							.color(NamedTextColor.AQUA)
+							.append(Component.text("» ").color(NamedTextColor.GRAY))
+							.append(Component.text("Invalid interval").color(NamedTextColor.RED)));
+						yield false;
+					}
+					plugin.getConfig().set("analysis.interval", interval);
+					plugin.saveConfig();
+					plugin.getLoginListener().reload();
+					sender.sendMessage(Component.text("LoginProtector")
+						.color(NamedTextColor.AQUA)
+						.append(Component.text("» ").color(NamedTextColor.GRAY))
+						.append(Component.text("Interval updated").color(NamedTextColor.GREEN)));
+					yield true;
+				}
+				catch (NumberFormatException e) {
+					sender.sendMessage(Component.text("LoginProtector")
+						.color(NamedTextColor.AQUA)
+						.append(Component.text("» ").color(NamedTextColor.GRAY))
+						.append(Component.text("Invalid interval").color(NamedTextColor.RED)));
+					yield false;
+				}
+			}
+			case "timeout" -> {
+				if (args.length != 2) {
+					sender.sendMessage(Component.text("LoginProtector")
+						.color(NamedTextColor.AQUA)
+						.append(Component.text("» ").color(NamedTextColor.GRAY))
+						.append(Component.text("Missing argument").color(NamedTextColor.RED)));
+					yield false;
+				}
+				try {
+					int timeout = Integer.parseInt(args[1]);
+					if (timeout < 1) {
+						sender.sendMessage(Component.text("LoginProtector")
+							.color(NamedTextColor.AQUA)
+							.append(Component.text("» ").color(NamedTextColor.GRAY))
+							.append(Component.text("Invalid timeout").color(NamedTextColor.RED)));
+						yield false;
+					}
+					plugin.getConfig().set("analysis.timeout", timeout);
+					plugin.saveConfig();
+					sender.sendMessage(Component.text("LoginProtector")
+						.color(NamedTextColor.AQUA)
+						.append(Component.text("» ").color(NamedTextColor.GRAY))
+						.append(Component.text("Timeout updated").color(NamedTextColor.GREEN)));
+					yield true;
+				}
+				catch (NumberFormatException e) {
+					sender.sendMessage(Component.text("LoginProtector")
+						.color(NamedTextColor.AQUA)
+						.append(Component.text("» ").color(NamedTextColor.GRAY))
+						.append(Component.text("Invalid timeout").color(NamedTextColor.RED)));
+					yield false;
+				}
+			}
+			case "help" -> {
+				sender.sendMessage(Component.text("LoginProtector")
+					.color(NamedTextColor.AQUA)
+					.append(Component.text("» ").color(NamedTextColor.GRAY))
+					.append(Component.text("Edit analysis:").color(NamedTextColor.GREEN)));
+				sender.sendMessage(Component.text("» ")
+					.color(NamedTextColor.GRAY)
+					.append(Component.text("/loginprotector edit analysis interval <seconds>")
+						.color(NamedTextColor.GREEN))
+					.append(Component.text(" - Edit the analysis interval").color(NamedTextColor.GRAY)));
+				sender.sendMessage(Component.text("» ")
+					.color(NamedTextColor.GRAY)
+					.append(Component.text("/loginprotector edit analysis timeout <seconds>")
+						.color(NamedTextColor.GREEN))
+					.append(Component.text(" - Edit the analysis timeout").color(NamedTextColor.GRAY)));
 				yield true;
 			}
 			default -> false;
@@ -220,22 +315,24 @@ public class ProtectorCommand extends Command implements PluginIdentifiableComma
 		}
 		if (args.length > 1 && args[0].equalsIgnoreCase("edit")) {
 			if (args.length == 2) {
-				return Stream.of("usernames", "webhook", "help")
+				return Stream.of("usernames", "webhook", "analysis", "help")
 					.filter(s -> s.startsWith(args[1].toLowerCase()))
 					.toList();
 			}
-			if (args[1].equalsIgnoreCase("usernames")) {
-				if (args.length == 3) {
-					return Stream.of("add", "remove", "list", "help")
-						.filter(s -> s.startsWith(args[2].toLowerCase()))
-						.toList();
+			switch (args[1].toLowerCase()) {
+				case "usernames" -> {
+					if (args.length == 3) {
+						return Stream.of("add", "remove", "list", "help")
+							.filter(s -> s.startsWith(args[2].toLowerCase()))
+							.toList();
+					}
 				}
-				if (args[2].equalsIgnoreCase("remove")) {
-					return plugin.getConfig()
-						.getStringList("usernames")
-						.stream()
-						.map(String::valueOf)
-						.toList();
+				case "analysis" -> {
+					if (args.length == 3) {
+						return Stream.of("interval", "timeout", "help")
+							.filter(s -> s.startsWith(args[2].toLowerCase()))
+							.toList();
+					}
 				}
 			}
 		}
