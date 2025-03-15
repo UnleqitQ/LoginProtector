@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,12 +15,16 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class UpdateChecker {
 	
 	private static final String URL_PATH =
 		"https://api.github.com/repos/UnleqitQ/LoginProtector/releases/latest";
+	
+	private static final Set<VersionInfo> downloadedVersions = new HashSet<>();
 	
 	public record VersionInfo(
 		int major, int minor, int patch
@@ -52,7 +57,6 @@ public class UpdateChecker {
 	public record ReleaseData(
 		String tag_name, String download_url, VersionInfo version
 	) {
-	
 	}
 	
 	@Contract (" -> new")
@@ -87,15 +91,12 @@ public class UpdateChecker {
 				ReleaseData latestRelease = loadLatestRelease();
 				if (latestRelease.version().isNewerThan(currentVersion)) {
 					LoginProtector.getInstance().getLogger().info("New version available: " + latestRelease.tag_name());
-					Thread updateThread = downloadUpdate(latestRelease);
+					Thread updateThread = downloadUpdate(latestRelease, false);
 					wrappedTask[0].cancel();
 					updateThread.setUncaughtExceptionHandler((t, e) -> {
 						LoginProtector.getInstance().getLogger().warning("Failed to download update");
 						scheduleUpdateCheck(taskConsumer);
 					});
-				}
-				else {
-					LoginProtector.getInstance().getLogger().info("Plugin is up to date");
 				}
 			}, 0, 20 * 60 * 60
 		);
@@ -103,10 +104,30 @@ public class UpdateChecker {
 		taskConsumer.accept(task);
 	}
 	
-	public static @NotNull Thread downloadUpdate(@NotNull ReleaseData release) {
+	public static @Nullable Thread checkForUpdates(boolean replace) {
+		VersionInfo currentVersion = VersionInfo.fromString(LoginProtector.getInstance().getPluginMeta().getVersion());
+		ReleaseData latestRelease = loadLatestRelease();
+		if (latestRelease.version().isNewerThan(currentVersion)) {
+			LoginProtector.getInstance().getLogger().info("New version available: " + latestRelease.tag_name());
+			if (!replace && downloadedVersions.contains(latestRelease.version)) {
+				LoginProtector.getInstance().getLogger().info("Update already downloaded");
+				return null;
+			}
+			return downloadUpdate(latestRelease, replace);
+		}
+		return null;
+	}
+	
+	public static @NotNull Thread downloadUpdate(@NotNull ReleaseData release, boolean replace) {
 		Thread thread = new Thread(() -> {
 			try (InputStream is = new URI(release.download_url()).toURL().openStream()) {
-				File updateFolder = LoginProtector.getInstance().getServer().getUpdateFolderFile();
+				File updateFolder;
+				if (replace) {
+					updateFolder = LoginProtector.getInstance().getServer().getPluginsFolder();
+				}
+				else {
+					updateFolder = LoginProtector.getInstance().getServer().getUpdateFolderFile();
+				}
 				LoginProtector.getInstance().getLogger().info("Update folder: " + updateFolder);
 				if (!updateFolder.exists() && !updateFolder.mkdirs()) {
 					throw new IOException("Failed to create update folder");
@@ -118,6 +139,7 @@ public class UpdateChecker {
 				LoginProtector.getInstance().getLogger().info("Downloading update to: " + updateFile);
 				Files.copy(is, updateFile.toPath());
 				LoginProtector.getInstance().getLogger().info("Update downloaded successfully");
+				downloadedVersions.add(release.version);
 			}
 			catch (IOException e) {
 				throw new RuntimeException("Failed to download update", e);

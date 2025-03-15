@@ -50,6 +50,51 @@ public class ProtectorCommand extends Command implements PluginIdentifiableComma
 				yield true;
 			}
 			case "edit" -> onEditCommand(sender, Arrays.copyOfRange(args, 1, args.length));
+			case "update" -> {
+				if (args.length != 2) {
+					sender.sendMessage(Component.text("LoginProtector")
+						.color(NamedTextColor.AQUA)
+						.append(Component.text("» ").color(NamedTextColor.GRAY))
+						.append(Component.text("Missing argument").color(NamedTextColor.RED)));
+					yield false;
+				}
+				boolean replace;
+				try {
+					replace = Boolean.parseBoolean(args[1]);
+				}
+				catch (IllegalArgumentException e) {
+					sender.sendMessage(Component.text("LoginProtector")
+						.color(NamedTextColor.AQUA)
+						.append(Component.text("» ").color(NamedTextColor.GRAY))
+						.append(Component.text("Invalid argument").color(NamedTextColor.RED)));
+					yield false;
+				}
+				Thread downloadThread = UpdateChecker.checkForUpdates(replace);
+				if (downloadThread == null) {
+					sender.sendMessage(Component.text("LoginProtector")
+						.color(NamedTextColor.AQUA)
+						.append(Component.text("» ").color(NamedTextColor.GRAY))
+						.append(Component.text("No updates available").color(NamedTextColor.GREEN)));
+					yield true;
+				}
+				Thread awaitThread = new Thread(() -> {
+					try {
+						downloadThread.join();
+						sender.sendMessage(Component.text("LoginProtector")
+							.color(NamedTextColor.AQUA)
+							.append(Component.text("» ").color(NamedTextColor.GRAY))
+							.append(Component.text("Update complete").color(NamedTextColor.GREEN)));
+					}
+					catch (InterruptedException e) {
+						sender.sendMessage(Component.text("LoginProtector")
+							.color(NamedTextColor.AQUA)
+							.append(Component.text("» ").color(NamedTextColor.GRAY))
+							.append(Component.text("Update failed").color(NamedTextColor.RED)));
+					}
+				});
+				awaitThread.start();
+				yield true;
+			}
 			case "help" -> {
 				sender.sendMessage(Component.text("LoginProtector")
 					.color(NamedTextColor.AQUA)
@@ -67,6 +112,11 @@ public class ProtectorCommand extends Command implements PluginIdentifiableComma
 					.color(NamedTextColor.GRAY)
 					.append(Component.text("/loginprotector edit ...").color(NamedTextColor.GREEN))
 					.append(Component.text(" - Edit the config").color(NamedTextColor.GRAY)));
+				sender.sendMessage(Component.text("» ")
+					.color(NamedTextColor.GRAY)
+					.append(Component.text("/loginprotector update <replace>")
+						.color(NamedTextColor.GREEN))
+					.append(Component.text(" - Updates the plugin").color(NamedTextColor.GRAY)));
 				yield true;
 			}
 			default -> false;
@@ -313,26 +363,36 @@ public class ProtectorCommand extends Command implements PluginIdentifiableComma
 				.filter(s -> s.startsWith(args[0].toLowerCase()))
 				.toList();
 		}
-		if (args.length > 1 && args[0].equalsIgnoreCase("edit")) {
-			if (args.length == 2) {
-				return Stream.of("usernames", "webhook", "analysis", "help")
-					.filter(s -> s.startsWith(args[1].toLowerCase()))
-					.toList();
-			}
-			switch (args[1].toLowerCase()) {
-				case "usernames" -> {
-					if (args.length == 3) {
-						return Stream.of("add", "remove", "list", "help")
-							.filter(s -> s.startsWith(args[2].toLowerCase()))
-							.toList();
+		if (args.length < 1) return List.of();
+		switch (args[0].toLowerCase()) {
+			case "edit" -> {
+				if (args.length == 2) {
+					return Stream.of("usernames", "webhook", "analysis", "help")
+						.filter(s -> s.startsWith(args[1].toLowerCase()))
+						.toList();
+				}
+				switch (args[1].toLowerCase()) {
+					case "usernames" -> {
+						if (args.length == 3) {
+							return Stream.of("add", "remove", "list", "help")
+								.filter(s -> s.startsWith(args[2].toLowerCase()))
+								.toList();
+						}
+					}
+					case "analysis" -> {
+						if (args.length == 3) {
+							return Stream.of("interval", "timeout", "help")
+								.filter(s -> s.startsWith(args[2].toLowerCase()))
+								.toList();
+						}
 					}
 				}
-				case "analysis" -> {
-					if (args.length == 3) {
-						return Stream.of("interval", "timeout", "help")
-							.filter(s -> s.startsWith(args[2].toLowerCase()))
-							.toList();
-					}
+			}
+			case "update" -> {
+				if (args.length == 2) {
+					return Stream.of("true", "false")
+						.filter(s -> s.startsWith(args[1].toLowerCase()))
+						.toList();
 				}
 			}
 		}
