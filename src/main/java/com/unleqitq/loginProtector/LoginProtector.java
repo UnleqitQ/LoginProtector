@@ -43,7 +43,7 @@ public final class LoginProtector extends JavaPlugin {
 		for (File file : Objects.requireNonNull(getServer().getPluginsFolder()
 			.listFiles((dir, name) -> name.startsWith("LoginProtector-") && name.endsWith(".jar")))) {
 			String fileName = file.getName();
-			String versionString = fileName.substring(4, fileName.length() - 4);
+			String versionString = fileName.substring(15, fileName.length() - 4);
 			try {
 				UpdateChecker.VersionInfo version = UpdateChecker.VersionInfo.fromString(versionString);
 				if (currentVersion.isNewerThan(version)) {
