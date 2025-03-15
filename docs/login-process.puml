@@ -1,0 +1,17 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+title Login Process
+
+participant Client
+participant Server
+
+autonumber 0
+
+Client -> Server: Handshake (Handshaking state)\nNext state set to 2 (login)
+Client -> Server: Login Start
+Server -> Client: Encryption Request
+Client -> Server: Encryption Response
+Server -> Client: Login Success
+Client -> Server: Login Acknowledged
+@enduml
