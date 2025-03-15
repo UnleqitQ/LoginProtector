@@ -1,11 +1,12 @@
 package com.unleqitq.loginProtector;
 
-import com.comphenix.protocol.ProtocolLibrary;
+import lombok.Getter;
 import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class LoginProtector extends JavaPlugin {
 	
+	@Getter
 	private LoginListener loginListener;
 	private ProtectorCommand protectorCommand;
 	
@@ -14,7 +15,7 @@ public final class LoginProtector extends JavaPlugin {
 		saveDefaultConfig();
 		reloadConfig();
 		loginListener = new LoginListener(this);
-		ProtocolLibrary.getProtocolManager().addPacketListener(loginListener);
+		loginListener.setup();
 		registerCommands();
 	}
 	
@@ -23,9 +24,14 @@ public final class LoginProtector extends JavaPlugin {
 		getServer().getCommandMap().register("loginprotector", protectorCommand);
 	}
 	
+	public void reload() {
+		reloadConfig();
+		loginListener.reload();
+	}
+	
 	@Override
 	public void onDisable() {
-		ProtocolLibrary.getProtocolManager().removePacketListener(loginListener);
+		loginListener.shutdown();
 		loginListener = null;
 		unregisterCommands();
 		protectorCommand = null;

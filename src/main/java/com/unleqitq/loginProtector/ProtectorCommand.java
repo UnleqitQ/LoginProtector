@@ -34,7 +34,7 @@ public class ProtectorCommand extends Command implements PluginIdentifiableComma
 	) {
 		return switch (args.length == 0 ? "help" : args[0].toLowerCase()) {
 			case "reload" -> {
-				plugin.reloadConfig();
+				plugin.reload();
 				sender.sendMessage(Component.text("LoginProtector")
 					.color(NamedTextColor.AQUA)
 					.append(Component.text("» ").color(NamedTextColor.GRAY))
