@@ -1,0 +1,5 @@
+webhook: DISCORD_WEBHOOK_URL
+
+# usernames are regex patterns
+logged-usernames:
+  - ServerOverflow\d+

@@ -6,3 +6,7 @@ authors: [UnleqitQ]
 website: https://www.unleqitq.com
 depend:
   - ProtocolLib
+permissions:
+  loginprotector.admin:
+    description: Allows the user to use all admin commands
+    default: op
