@@ -3,3 +3,7 @@ webhook: DISCORD_WEBHOOK_URL
 # usernames are regex patterns
 logged-usernames:
   - ServerOverflow\d+
+
+analysis:
+  interval: 5 # seconds between each analysis task run
+  timeout: 30 # seconds before a login attempt is considered timed out
